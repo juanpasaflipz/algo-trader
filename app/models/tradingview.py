@@ -2,6 +2,10 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field, validator
 from enum import Enum
+from app.models.base import (
+    BaseTradingSignal, BaseResponse, BaseModelConfig,
+    validate_symbol, validate_positive_number
+)
 
 
 class SignalType(str, Enum):
@@ -19,63 +23,40 @@ class OrderType(str, Enum):
     STOP_LIMIT = "stop_limit"
 
 
-class TradingViewAlert(BaseModel):
-    """TradingView webhook payload model"""
+class TradingViewAlert(BaseTradingSignal):
+    """TradingView webhook payload model - extends BaseTradingSignal.
     
-    # Required fields
+    OPTIMIZATION: Extends BaseTradingSignal instead of duplicating common fields.
+    This reduces code by ~40% and ensures consistent validation across all signal types.
+    """
+    
+    # Additional required fields beyond base
     strategy: str = Field(..., description="Strategy name that generated the signal")
-    symbol: str = Field(..., description="Trading symbol (e.g., BTCUSDT, AAPL)")
     signal: SignalType = Field(..., description="Trading signal type")
     
-    # Optional fields
-    price: Optional[float] = Field(None, description="Current price or target price")
-    quantity: Optional[float] = Field(None, description="Position size")
+    # Additional optional fields
     order_type: OrderType = Field(default=OrderType.MARKET)
-    stop_loss: Optional[float] = Field(None, description="Stop loss price")
-    take_profit: Optional[float] = Field(None, description="Take profit price")
-    
-    # Metadata
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
     message: Optional[str] = Field(None, description="Additional message from Pine Script")
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
     
-    @validator("symbol")
-    def validate_symbol(cls, v):
-        """Ensure symbol is uppercase"""
-        return v.upper()
+    # Override timestamp to be included
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
     
-    @validator("quantity")
-    def validate_quantity(cls, v):
-        """Ensure quantity is positive"""
-        if v is not None and v <= 0:
-            raise ValueError("Quantity must be positive")
-        return v
-    
-    @validator("price", "stop_loss", "take_profit")
-    def validate_prices(cls, v):
-        """Ensure prices are positive"""
-        if v is not None and v <= 0:
-            raise ValueError("Price must be positive")
-        return v
-    
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    # Use base validators and add custom ones
+    _validate_symbol = validator("symbol", allow_reuse=True)(validate_symbol)
+    _validate_quantity = validator("quantity", allow_reuse=True)(validate_positive_number("quantity"))
+    _validate_price = validator("price", allow_reuse=True)(validate_positive_number("price"))
 
 
-class WebhookResponse(BaseModel):
-    """Response model for webhook endpoints"""
+class WebhookResponse(BaseResponse):
+    """Response model for webhook endpoints.
+    
+    OPTIMIZATION: Extends BaseResponse to inherit timestamp and JSON encoding.
+    """
     
     success: bool
     message: str
     alert_id: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
-    
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
 
 
 class AlertValidation(BaseModel):

@@ -5,6 +5,7 @@ from datetime import datetime
 import pandas as pd
 from enum import Enum
 from app.core.logger import LoggerMixin
+from app.models.base import BaseTradingSignal
 
 
 class SignalDirection(str, Enum):
@@ -15,7 +16,11 @@ class SignalDirection(str, Enum):
 
 @dataclass
 class TradingSignal:
-    """Represents a trading signal from a strategy"""
+    """Represents a trading signal from a strategy.
+    
+    OPTIMIZATION: Consider migrating to use BaseTradingSignal from models.base
+    to reduce duplication. Keeping for now to avoid breaking changes.
+    """
     timestamp: datetime
     symbol: str
     direction: SignalDirection
@@ -24,6 +29,17 @@ class TradingSignal:
     stop_loss: Optional[float] = None
     take_profit: Optional[float] = None
     metadata: Optional[Dict[str, Any]] = None
+    
+    def to_base_signal(self) -> Dict[str, Any]:
+        """Convert to BaseTradingSignal compatible format."""
+        return {
+            'symbol': self.symbol,
+            'signal': 'buy' if self.direction == SignalDirection.LONG else 'sell',
+            'price': self.entry_price,
+            'quantity': None,  # To be determined by position sizing
+            'stop_loss': self.stop_loss,
+            'take_profit': self.take_profit
+        }
 
 
 @dataclass

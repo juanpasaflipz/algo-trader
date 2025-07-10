@@ -2,6 +2,10 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from enum import Enum
+from app.models.base import (
+    BaseAnalysisResponse, BaseTradingSignal, BaseModelConfig,
+    validate_positive_number, validate_percentage
+)
 
 
 class RiskRating(str, Enum):
@@ -11,27 +15,25 @@ class RiskRating(str, Enum):
     EXTREME = "EXTREME"
 
 
-class TradeAnalysisRequest(BaseModel):
-    """Request model for AI trade analysis"""
-    symbol: str
+class TradeAnalysisRequest(BaseTradingSignal):
+    """Request model for AI trade analysis.
+    
+    OPTIMIZATION: Extends BaseTradingSignal to reuse common trading fields.
+    """
     strategy: str
-    signal_type: str
-    price: float
-    quantity: Optional[float] = None
-    stop_loss: Optional[float] = None
-    take_profit: Optional[float] = None
+    signal_type: str  # Alias for signal field
     market_context: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
-class TradeAnalysisResponse(BaseModel):
-    """AI analysis response for a trade signal"""
+class TradeAnalysisResponse(BaseAnalysisResponse):
+    """AI analysis response for a trade signal.
+    
+    OPTIMIZATION: Extends BaseAnalysisResponse for common fields.
+    """
     signal_strength: float = Field(..., ge=0, le=100, description="Signal strength 0-100")
     risk_reward: float = Field(..., description="Risk/reward ratio")
     market_alignment: str = Field(..., description="How well aligned with market conditions")
     recommendations: List[str] = Field(..., description="Specific recommendations")
-    confidence: float = Field(..., ge=0, le=100, description="AI confidence level")
-    reasoning: str = Field(..., description="Detailed reasoning")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
 class BacktestAnalysisRequest(BaseModel):
@@ -40,8 +42,11 @@ class BacktestAnalysisRequest(BaseModel):
     include_trade_analysis: bool = Field(default=False, description="Include individual trade analysis")
 
 
-class BacktestAnalysisResponse(BaseModel):
-    """AI analysis of backtest results"""
+class BacktestAnalysisResponse(BaseAnalysisResponse):
+    """AI analysis of backtest results.
+    
+    OPTIMIZATION: Extends BaseAnalysisResponse.
+    """
     assessment: str = Field(..., description="Overall strategy assessment")
     strengths: List[str] = Field(..., description="Strategy strengths")
     weaknesses: List[str] = Field(..., description="Strategy weaknesses")
@@ -49,7 +54,6 @@ class BacktestAnalysisResponse(BaseModel):
     improvements: List[str] = Field(..., description="Suggested improvements")
     market_conditions: Dict[str, str] = Field(..., description="Favorable/unfavorable conditions")
     parameter_suggestions: Dict[str, Any] = Field(..., description="Parameter adjustments")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
 class MarketCommentaryRequest(BaseModel):
@@ -59,14 +63,20 @@ class MarketCommentaryRequest(BaseModel):
     include_indicators: List[str] = Field(default_factory=list, description="Technical indicators to include")
 
 
-class MarketCommentaryResponse(BaseModel):
-    """AI-generated market commentary"""
+class MarketCommentaryResponse(BaseAnalysisResponse):
+    """AI-generated market commentary.
+    
+    OPTIMIZATION: Extends BaseAnalysisResponse, overrides reasoning with commentary.
+    """
     symbol: str
     timeframe: str
-    commentary: str
+    commentary: str  # Alias for reasoning
     key_levels: Dict[str, float] = Field(default_factory=dict, description="Support/resistance levels")
     sentiment: str = Field(..., description="Market sentiment: bullish/bearish/neutral")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    
+    @property
+    def reasoning(self):
+        return self.commentary
 
 
 class RiskAssessmentRequest(BaseModel):
@@ -80,8 +90,11 @@ class RiskAssessmentRequest(BaseModel):
     leverage: float = Field(default=1.0, ge=1.0)
 
 
-class RiskAssessmentResponse(BaseModel):
-    """AI risk assessment response"""
+class RiskAssessmentResponse(BaseAnalysisResponse):
+    """AI risk assessment response.
+    
+    OPTIMIZATION: Extends BaseAnalysisResponse.
+    """
     position_size_assessment: str
     stop_loss_assessment: str
     take_profit_assessment: str
@@ -90,7 +103,6 @@ class RiskAssessmentResponse(BaseModel):
     risk_reward_ratio: float
     recommendations: List[str]
     approved: bool = Field(..., description="Whether the trade meets risk criteria")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
 class StrategyOptimizationRequest(BaseModel):
@@ -100,11 +112,16 @@ class StrategyOptimizationRequest(BaseModel):
     performance_window: int = Field(default=10, description="Number of recent trades to analyze")
 
 
-class StrategyOptimizationResponse(BaseModel):
-    """AI strategy optimization suggestions"""
+class StrategyOptimizationResponse(BaseAnalysisResponse):
+    """AI strategy optimization suggestions.
+    
+    OPTIMIZATION: Extends BaseAnalysisResponse - saves 3 duplicate fields.
+    """
     pattern_analysis: str = Field(..., description="Patterns found in performance")
     suggested_parameters: Dict[str, Any] = Field(..., description="Optimized parameters")
-    reasoning: str = Field(..., description="Explanation of changes")
     expected_improvement_percent: float = Field(..., description="Expected performance improvement")
-    confidence_level: float = Field(..., ge=0, le=100)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Map confidence_level to base confidence field
+    @property
+    def confidence_level(self):
+        return self.confidence
