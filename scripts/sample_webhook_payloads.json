@@ -1,0 +1,69 @@
+{
+  "tradingview_alerts": {
+    "ema_crossover_buy": {
+      "strategy": "EMA_Crossover",
+      "symbol": "BTCUSDT",
+      "signal": "buy",
+      "price": 50000.0,
+      "quantity": 0.1,
+      "stop_loss": 49000.0,
+      "take_profit": 52000.0,
+      "message": "EMA12 crossed above EMA26 - Bullish signal",
+      "metadata": {
+        "timeframe": "1h",
+        "ema_fast": 50100,
+        "ema_slow": 49900,
+        "volume": "above_average"
+      }
+    },
+    "ema_crossover_sell": {
+      "strategy": "EMA_Crossover",
+      "symbol": "BTCUSDT",
+      "signal": "sell",
+      "price": 51000.0,
+      "quantity": 0.1,
+      "stop_loss": 52000.0,
+      "take_profit": 49000.0,
+      "message": "EMA12 crossed below EMA26 - Bearish signal",
+      "metadata": {
+        "timeframe": "1h",
+        "ema_fast": 50900,
+        "ema_slow": 51100,
+        "volume": "average"
+      }
+    },
+    "close_position": {
+      "strategy": "EMA_Crossover",
+      "symbol": "BTCUSDT",
+      "signal": "close",
+      "price": 50500.0,
+      "message": "Close all positions - Signal neutralized"
+    },
+    "rsi_oversold_buy": {
+      "strategy": "RSI_Oversold",
+      "symbol": "ETHUSD",
+      "signal": "buy",
+      "price": 3200.0,
+      "quantity": 1.0,
+      "stop_loss": 3100.0,
+      "take_profit": 3400.0,
+      "message": "RSI < 30 - Oversold condition",
+      "metadata": {
+        "rsi_value": 28.5,
+        "timeframe": "4h"
+      }
+    }
+  },
+  "pine_script_template": {
+    "description": "Example Pine Script code to send webhooks from TradingView",
+    "code": "//@version=5\nindicator(\"Webhook EMA Crossover\", overlay=true)\n\n// Input parameters\nfast_length = input.int(12, \"Fast EMA Length\")\nslow_length = input.int(26, \"Slow EMA Length\")\n\n// Calculate EMAs\nema_fast = ta.ema(close, fast_length)\nema_slow = ta.ema(close, slow_length)\n\n// Detect crossovers\nbullish_cross = ta.crossover(ema_fast, ema_slow)\nbearish_cross = ta.crossunder(ema_fast, ema_slow)\n\n// Plot EMAs\nplot(ema_fast, color=color.green, linewidth=2, title=\"Fast EMA\")\nplot(ema_slow, color=color.red, linewidth=2, title=\"Slow EMA\")\n\n// Alert conditions\nif bullish_cross\n    alert('{\"strategy\": \"EMA_Crossover\", \"symbol\": \"' + syminfo.ticker + '\", \"signal\": \"buy\", \"price\": ' + str.tostring(close) + ', \"stop_loss\": ' + str.tostring(close * 0.98) + ', \"take_profit\": ' + str.tostring(close * 1.04) + '}', alert.freq_once_per_bar_close)\n\nif bearish_cross\n    alert('{\"strategy\": \"EMA_Crossover\", \"symbol\": \"' + syminfo.ticker + '\", \"signal\": \"sell\", \"price\": ' + str.tostring(close) + ', \"stop_loss\": ' + str.tostring(close * 1.02) + ', \"take_profit\": ' + str.tostring(close * 0.96) + '}', alert.freq_once_per_bar_close)"
+  },
+  "webhook_url_format": {
+    "description": "Configure this URL in TradingView alert",
+    "url": "http://your-server:8000/api/v1/webhook/tradingview",
+    "headers": {
+      "Authorization": "Bearer your-webhook-secret",
+      "Content-Type": "application/json"
+    }
+  }
+}

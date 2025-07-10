@@ -1,0 +1,27 @@
+# Minimal requirements for first milestone test
+# This avoids complex dependencies that might have compatibility issues
+
+# Core framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Basic data processing (avoiding ta-lib for now)
+pandas==2.2.3
+numpy==1.26.4
+
+# HTTP clients
+httpx==0.25.2
+
+# Utilities
+python-dotenv==1.0.0
+python-jose[cryptography]==3.3.0
+rich==13.7.0  # For nice console output
+
+# Logging
+structlog==23.2.0
+
+# Development
+pytest==7.4.3
+pytest-asyncio==0.21.1

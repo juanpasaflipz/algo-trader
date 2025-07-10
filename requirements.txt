@@ -1,0 +1,59 @@
+# Core framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Data processing
+pandas==2.2.3  # Updated for Python 3.13 compatibility
+numpy==1.26.4  # Updated for compatibility
+# Note: ta-lib requires separate installation - see README
+# ta-lib==0.4.28  # Technical indicators (install separately)
+pandas-ta==0.3.14b0  # Additional technical indicators
+
+# Exchange/Broker APIs
+ccxt==4.1.22  # Cryptocurrency exchanges
+ib_insync==0.9.85  # Interactive Brokers
+alpaca-py==0.13.3  # Alpaca trading
+
+# Database
+sqlalchemy==2.0.23
+alembic==1.12.1
+asyncpg==0.29.0  # PostgreSQL async driver
+redis==5.0.1
+aioredis==2.0.1
+
+# Background tasks
+celery==5.3.4
+apscheduler==3.10.4
+
+# HTTP clients
+httpx==0.25.2
+aiohttp==3.9.1
+websockets==11.0.3  # For real-time data feeds (compatible with alpaca-py)
+
+# Utilities
+python-dotenv==1.0.0
+python-jose[cryptography]==3.3.0  # JWT for webhook auth
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+rich==13.7.0  # For nice console output in test scripts
+
+# Development
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-mock==3.12.0
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
+pre-commit==3.5.0
+
+# Monitoring
+prometheus-client==0.19.0
+structlog==23.2.0
+
+# AI/ML
+anthropic==0.39.0  # Claude API
+langchain==0.1.0  # For AI workflows
+langchain-anthropic==0.1.1  # Claude integration for LangChain
+tiktoken==0.5.2  # Token counting
