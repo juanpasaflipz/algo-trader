@@ -1,9 +1,10 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from app.core.dependencies import verify_webhook_auth
 from app.core.logger import get_logger, trading_logger
 from app.models.tradingview import TradingViewAlert, WebhookResponse, AlertValidation
 from app.core.errors import WebhookParseError
+from app.core.rate_limit import RateLimits
 from typing import Dict, Any
 
 router = APIRouter()
@@ -67,7 +68,9 @@ async def process_alert(alert: TradingViewAlert) -> str:
     response_model=WebhookResponse,
     dependencies=[Depends(verify_webhook_auth)],
 )
+@RateLimits.WEBHOOK
 async def tradingview_webhook(
+    request: Request,
     alert: TradingViewAlert,
     async_processing: bool = False
 ) -> WebhookResponse:

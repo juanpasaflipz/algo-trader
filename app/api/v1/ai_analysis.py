@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from typing import Dict, Any
 from app.core.logger import get_logger
 from app.core.config import settings
+from app.core.rate_limit import RateLimits
 from app.models.ai_analysis import (
     TradeAnalysisRequest,
     TradeAnalysisResponse,
@@ -43,7 +44,8 @@ def check_ai_enabled():
     response_model=TradeAnalysisResponse,
     dependencies=[Depends(check_ai_enabled)],
 )
-async def analyze_trade_signal(request: TradeAnalysisRequest) -> TradeAnalysisResponse:
+@RateLimits.AI_ANALYSIS
+async def analyze_trade_signal(request: Request, trade_request: TradeAnalysisRequest) -> TradeAnalysisResponse:
     """
     Get AI analysis for a trading signal
 
@@ -58,17 +60,17 @@ async def analyze_trade_signal(request: TradeAnalysisRequest) -> TradeAnalysisRe
 
         # Convert request to TradingViewAlert format for analysis
         alert = TradingViewAlert(
-            strategy=request.strategy,
-            symbol=request.symbol,
-            signal=request.signal_type,
-            price=request.price,
-            quantity=request.quantity,
-            stop_loss=request.stop_loss,
-            take_profit=request.take_profit,
+            strategy=trade_request.strategy,
+            symbol=trade_request.symbol,
+            signal=trade_request.signal_type,
+            price=trade_request.price,
+            quantity=trade_request.quantity,
+            stop_loss=trade_request.stop_loss,
+            take_profit=trade_request.take_profit,
         )
 
         # Get AI analysis
-        analysis = await ai_service.analyze_trade_signal(alert, request.market_context)
+        analysis = await ai_service.analyze_trade_signal(alert, trade_request.market_context)
 
         # Convert to response model
         return TradeAnalysisResponse(

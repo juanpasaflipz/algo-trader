@@ -1,7 +1,8 @@
 from typing import List, Dict, Any
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
 from pydantic import BaseModel
 from app.core.logger import get_logger
+from app.core.rate_limit import RateLimits
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -44,7 +45,8 @@ positions: List[PositionInfo] = []
 
 
 @router.post("/trading/control")
-async def control_strategy(control: StrategyControl) -> dict:
+@RateLimits.TRADING_CONTROL
+async def control_strategy(request: Request, control: StrategyControl) -> dict:
     """
     Control trading strategies (start, stop, pause, resume)
 
@@ -208,7 +210,8 @@ async def close_position(symbol: str, quantity: float = None) -> dict:
 
 
 @router.post("/trading/emergency-stop")
-async def emergency_stop() -> dict:
+@RateLimits.EMERGENCY_STOP
+async def emergency_stop(request: Request) -> dict:
     """Emergency stop - closes all positions and stops all strategies"""
 
     # Stop all strategies

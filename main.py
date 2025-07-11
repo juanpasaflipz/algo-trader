@@ -5,6 +5,7 @@ from prometheus_client import make_asgi_app
 from app.core.config import settings
 from app.core.telemetry import get_logger, metrics, configure_logging
 from app.core.middleware import TelemetryMiddleware, TimingRoute
+from app.core.rate_limit import apply_rate_limiting
 from app.api.v1 import (
     webhooks,  # renamed from tradingview_webhook
     strategies,  # renamed from backtest
@@ -57,6 +58,9 @@ app = FastAPI(
     redoc_url="/redoc" if settings.debug else None,
     lifespan=lifespan,
 )
+
+# Apply rate limiting
+apply_rate_limiting(app)
 
 # Add telemetry middleware
 app.add_middleware(TelemetryMiddleware)
