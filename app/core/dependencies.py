@@ -22,17 +22,13 @@ def verify_webhook_token(token: str) -> bool:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> dict:
     """Verify JWT token and return current user"""
     token = credentials.credentials
-    
+
     try:
-        payload = jwt.decode(
-            token,
-            settings.secret_key,
-            algorithms=["HS256"]
-        )
+        payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
         return payload
     except JWTError:
         logger.warning("Invalid authentication token")
@@ -44,16 +40,16 @@ async def get_current_user(
 
 
 async def verify_webhook_auth(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> bool:
     """Verify webhook authentication"""
     token = credentials.credentials
-    
+
     if not verify_webhook_token(token):
         logger.warning("Invalid webhook token attempt")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid webhook authentication",
         )
-    
+
     return True

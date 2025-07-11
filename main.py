@@ -4,7 +4,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import make_asgi_app
 from app.core.config import settings
 from app.core.logger import logger
-from app.api.v1 import tradingview_webhook, backtest, trade_controller, status, ai_analysis
+from app.api.v1 import (
+    webhooks,  # renamed from tradingview_webhook
+    strategies,  # renamed from backtest
+    execution,  # renamed from trade_controller
+    status,
+    ai_analysis,
+    auth,  # new
+    profiling,  # new
+)
 
 
 @asynccontextmanager
@@ -12,13 +20,13 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     # Startup
     logger.info("Starting Algo Trader", version=settings.app_version)
-    
+
     # TODO: Initialize database connection
     # TODO: Initialize Redis connection
     # TODO: Start background tasks
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down Algo Trader")
     # TODO: Close database connections
@@ -32,7 +40,7 @@ app = FastAPI(
     version=settings.app_version,
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Configure CORS
@@ -50,35 +58,27 @@ if settings.enable_metrics:
     app.mount("/metrics", metrics_app)
 
 # Include API routes
+app.include_router(status.router, prefix=settings.api_v1_prefix, tags=["status"])
+
 app.include_router(
-    status.router,
-    prefix=settings.api_v1_prefix,
-    tags=["status"]
+    auth.router, prefix=settings.api_v1_prefix, tags=["auth"]
 )
 
 app.include_router(
-    tradingview_webhook.router,
-    prefix=settings.api_v1_prefix,
-    tags=["webhooks"]
+    profiling.router, prefix=settings.api_v1_prefix, tags=["profiling"]
 )
 
 app.include_router(
-    backtest.router,
-    prefix=settings.api_v1_prefix,
-    tags=["backtest"]
+    webhooks.router, prefix=settings.api_v1_prefix, tags=["webhooks"]
 )
 
-app.include_router(
-    trade_controller.router,
-    prefix=settings.api_v1_prefix,
-    tags=["trading"]
-)
+app.include_router(strategies.router, prefix=settings.api_v1_prefix, tags=["strategies"])
 
 app.include_router(
-    ai_analysis.router,
-    prefix=settings.api_v1_prefix,
-    tags=["ai"]
+    execution.router, prefix=settings.api_v1_prefix, tags=["execution"]
 )
+
+app.include_router(ai_analysis.router, prefix=settings.api_v1_prefix, tags=["ai"])
 
 
 @app.exception_handler(Exception)
@@ -88,18 +88,18 @@ async def global_exception_handler(request, exc):
         "Unhandled exception",
         exc_info=exc,
         path=request.url.path,
-        method=request.method
+        method=request.method,
     )
     return {"detail": "Internal server error"}, 500
 
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
         port=8000,
         reload=settings.is_development,
-        log_level=settings.log_level.lower()
+        log_level=settings.log_level.lower(),
     )

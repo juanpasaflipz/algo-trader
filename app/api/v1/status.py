@@ -30,7 +30,7 @@ async def health_check():
         status="healthy",
         version=settings.app_version,
         environment=settings.environment,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.utcnow(),
     )
 
 
@@ -39,10 +39,10 @@ async def status_check():
     """Detailed status check including service dependencies"""
     services = {
         "database": "unknown",  # TODO: Check database connection
-        "redis": "unknown",     # TODO: Check Redis connection
+        "redis": "unknown",  # TODO: Check Redis connection
         "webhooks": "active",
     }
-    
+
     # TODO: Add actual service health checks
     # try:
     #     # Check database
@@ -50,11 +50,11 @@ async def status_check():
     #     services["database"] = "healthy"
     # except Exception:
     #     services["database"] = "unhealthy"
-    
+
     return StatusResponse(
         status="operational",
         version=settings.app_version,
         environment=settings.environment,
         timestamp=datetime.utcnow(),
-        services=services
+        services=services,
     )

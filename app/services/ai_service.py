@@ -12,26 +12,25 @@ import pandas as pd
 
 class AIAnalysisError(AlgoTraderError):
     """Raised when AI analysis fails"""
+
     pass
 
 
 class AIService(LoggerMixin):
     """Service for AI-powered trading analysis using Claude"""
-    
+
     def __init__(self):
         if not settings.anthropic_api_key:
             raise AIAnalysisError("Anthropic API key not configured")
-        
+
         self.client = Anthropic(api_key=settings.anthropic_api_key)
         self.model = settings.claude_model
-        
+
     async def analyze_trade_signal(
-        self,
-        alert: TradingViewAlert,
-        market_context: Optional[Dict[str, Any]] = None
+        self, alert: TradingViewAlert, market_context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Analyze a trading signal and provide recommendations"""
-        
+
         try:
             prompt = f"""You are an expert algorithmic trading analyst. Analyze this trading signal and provide recommendations.
 
@@ -59,30 +58,29 @@ Provide your analysis in JSON format with keys: signal_strength, risk_reward, ma
                 model=self.model,
                 max_tokens=settings.ai_max_tokens,
                 temperature=settings.ai_temperature,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
-            
+
             # Extract JSON from response
             analysis = self._parse_json_response(response.content[0].text)
-            
+
             self.log_event(
                 "AI trade signal analysis completed",
                 symbol=alert.symbol,
-                confidence=analysis.get("confidence", 0)
+                confidence=analysis.get("confidence", 0),
             )
-            
+
             return analysis
-            
+
         except Exception as e:
             self.log_error(f"AI analysis failed: {str(e)}")
             raise AIAnalysisError(f"Failed to analyze trade signal: {str(e)}")
-    
+
     async def analyze_backtest_results(
-        self,
-        backtest_result: BacktestResult
+        self, backtest_result: BacktestResult
     ) -> Dict[str, Any]:
         """Provide AI-powered insights on backtest results"""
-        
+
         try:
             metrics = backtest_result.metrics
             prompt = f"""You are an expert quantitative analyst. Analyze these backtest results and provide insights.
@@ -114,37 +112,39 @@ Format your response as JSON with keys: assessment, strengths, weaknesses, risk_
                 model=self.model,
                 max_tokens=settings.ai_max_tokens,
                 temperature=settings.ai_temperature,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
-            
+
             analysis = self._parse_json_response(response.content[0].text)
-            
+
             self.log_event(
                 "AI backtest analysis completed",
                 strategy=backtest_result.strategy,
-                total_return=metrics.total_return
+                total_return=metrics.total_return,
             )
-            
+
             return analysis
-            
+
         except Exception as e:
             self.log_error(f"Backtest analysis failed: {str(e)}")
             raise AIAnalysisError(f"Failed to analyze backtest results: {str(e)}")
-    
+
     async def generate_market_commentary(
         self,
         symbol: str,
         timeframe: str,
         price_data: pd.DataFrame,
-        indicators: Dict[str, Any]
+        indicators: Dict[str, Any],
     ) -> str:
         """Generate human-readable market commentary"""
-        
+
         try:
             # Prepare data summary
-            current_price = price_data['close'].iloc[-1]
-            price_change = (price_data['close'].iloc[-1] / price_data['close'].iloc[-2] - 1) * 100
-            
+            current_price = price_data["close"].iloc[-1]
+            price_change = (
+                price_data["close"].iloc[-1] / price_data["close"].iloc[-2] - 1
+            ) * 100
+
             prompt = f"""You are a professional market analyst. Generate a concise market commentary for traders.
 
 Symbol: {symbol}
@@ -171,31 +171,31 @@ Keep it professional, actionable, and under 200 words."""
                 model=self.model,
                 max_tokens=500,
                 temperature=0.7,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
-            
+
             return response.content[0].text
-            
+
         except Exception as e:
             self.log_error(f"Market commentary generation failed: {str(e)}")
             return f"Unable to generate market commentary: {str(e)}"
-    
+
     async def assess_risk_parameters(
         self,
         position_size: float,
         stop_loss: float,
         take_profit: float,
         account_balance: float,
-        symbol_volatility: float
+        symbol_volatility: float,
     ) -> Dict[str, Any]:
         """AI-powered risk assessment for a potential trade"""
-        
+
         try:
             risk_amount = position_size * stop_loss
             risk_percentage = (risk_amount / account_balance) * 100
             reward_amount = position_size * take_profit
             risk_reward_ratio = reward_amount / risk_amount if risk_amount > 0 else 0
-            
+
             prompt = f"""You are a risk management expert. Assess the risk parameters for this trade.
 
 Trade Parameters:
@@ -219,31 +219,31 @@ Provide response as JSON with keys: position_size_assessment, stop_loss_assessme
                 model=self.model,
                 max_tokens=1000,
                 temperature=0.3,  # Lower temperature for risk assessment
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
-            
+
             assessment = self._parse_json_response(response.content[0].text)
-            
+
             self.log_event(
                 "AI risk assessment completed",
                 risk_rating=assessment.get("risk_rating", "UNKNOWN"),
-                approved=assessment.get("approved", False)
+                approved=assessment.get("approved", False),
             )
-            
+
             return assessment
-            
+
         except Exception as e:
             self.log_error(f"Risk assessment failed: {str(e)}")
             raise AIAnalysisError(f"Failed to assess risk parameters: {str(e)}")
-    
+
     async def optimize_strategy_parameters(
         self,
         strategy_name: str,
         current_params: Dict[str, Any],
-        recent_performance: List[Dict[str, Any]]
+        recent_performance: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         """Suggest parameter optimizations based on recent performance"""
-        
+
         try:
             prompt = f"""You are a quantitative strategy optimization expert. Suggest parameter adjustments for better performance.
 
@@ -265,23 +265,24 @@ Provide response as JSON with keys: pattern_analysis, suggested_parameters, reas
                 model=self.model,
                 max_tokens=settings.ai_max_tokens,
                 temperature=0.5,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
-            
+
             optimization = self._parse_json_response(response.content[0].text)
-            
+
             return optimization
-            
+
         except Exception as e:
             self.log_error(f"Strategy optimization failed: {str(e)}")
             raise AIAnalysisError(f"Failed to optimize strategy parameters: {str(e)}")
-    
+
     def _parse_json_response(self, text: str) -> Dict[str, Any]:
         """Parse JSON from Claude's response"""
         try:
             # Try to find JSON in the response
             import re
-            json_match = re.search(r'\{[\s\S]*\}', text)
+
+            json_match = re.search(r"\{[\s\S]*\}", text)
             if json_match:
                 return json.loads(json_match.group())
             else:
@@ -292,12 +293,13 @@ Provide response as JSON with keys: pattern_analysis, suggested_parameters, reas
             # Return a structured response even if parsing fails
             return {
                 "error": "Failed to parse AI response",
-                "raw_response": text[:500]  # First 500 chars
+                "raw_response": text[:500],  # First 500 chars
             }
 
 
 # Global AI service instance
 ai_service = None
+
 
 def get_ai_service() -> AIService:
     """Get or create AI service instance"""
