@@ -67,7 +67,10 @@ async def process_alert(alert: TradingViewAlert) -> str:
     response_model=WebhookResponse,
     dependencies=[Depends(verify_webhook_auth)],
 )
-async def tradingview_webhook(alert: TradingViewAlert) -> WebhookResponse:
+async def tradingview_webhook(
+    alert: TradingViewAlert,
+    async_processing: bool = False
+) -> WebhookResponse:
     """
     Receive and process TradingView webhook alerts
 
@@ -97,11 +100,29 @@ async def tradingview_webhook(alert: TradingViewAlert) -> WebhookResponse:
             logger.warning("Alert validation warnings", warnings=validation.warnings)
 
         # Process the alert
-        alert_id = await process_alert(alert)
-
-        return WebhookResponse(
-            success=True, message=f"Alert processed successfully", alert_id=alert_id
-        )
+        if async_processing:
+            # Queue for async processing
+            from app.workers.tasks import process_webhook
+            
+            task = process_webhook.delay(alert.model_dump())
+            alert_id = task.id
+            
+            logger.info("Webhook queued for async processing", task_id=alert_id)
+            
+            return WebhookResponse(
+                success=True,
+                message="Alert queued for processing",
+                alert_id=alert_id
+            )
+        else:
+            # Process synchronously
+            alert_id = await process_alert(alert)
+            
+            return WebhookResponse(
+                success=True,
+                message="Alert processed successfully",
+                alert_id=alert_id
+            )
 
     except WebhookParseError as e:
         logger.error("Webhook parse error", error=str(e))

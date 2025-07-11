@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     # Database
     database_url: str = Field(..., description="PostgreSQL connection URL")
     redis_url: str = Field(default="redis://localhost:6379")
+    
+    # Celery Configuration
+    celery_broker_url: str = Field(default="redis://localhost:6379/0")
+    celery_result_backend: str = Field(default="redis://localhost:6379/1")
+    celery_task_always_eager: bool = Field(default=False)  # Set True for testing without broker
 
     # TradingView
     tradingview_webhook_secret: str = Field(

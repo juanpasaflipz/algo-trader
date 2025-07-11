@@ -10,6 +10,8 @@ services:
       - ENVIRONMENT=development
       - DATABASE_URL=postgresql+asyncpg://trader:trader_pass@postgres:5432/algo_trader
       - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - TRADINGVIEW_WEBHOOK_SECRET=${TRADINGVIEW_WEBHOOK_SECRET:-change_me_in_production}
     env_file:
       - .env
@@ -22,6 +24,71 @@ services:
       - trader-network
     volumes:
       - ./logs:/app/logs
+    restart: unless-stopped
+  
+  celery-worker:
+    build: .
+    container_name: algo-trader-worker
+    command: celery -A celery_worker worker --loglevel=info
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql+asyncpg://trader:trader_pass@postgres:5432/algo_trader
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - TRADINGVIEW_WEBHOOK_SECRET=${TRADINGVIEW_WEBHOOK_SECRET:-change_me_in_production}
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - trader-network
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+  
+  celery-beat:
+    build: .
+    container_name: algo-trader-beat
+    command: celery -A celery_worker beat --loglevel=info
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql+asyncpg://trader:trader_pass@postgres:5432/algo_trader
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - TRADINGVIEW_WEBHOOK_SECRET=${TRADINGVIEW_WEBHOOK_SECRET:-change_me_in_production}
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - trader-network
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+  
+  flower:
+    build: .
+    container_name: algo-trader-flower
+    command: celery -A celery_worker flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql+asyncpg://trader:trader_pass@postgres:5432/algo_trader
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - TRADINGVIEW_WEBHOOK_SECRET=${TRADINGVIEW_WEBHOOK_SECRET:-change_me_in_production}
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    networks:
+      - trader-network
     restart: unless-stopped
 
   postgres:

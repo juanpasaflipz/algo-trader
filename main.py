@@ -3,7 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import make_asgi_app
 from app.core.config import settings
-from app.core.logger import logger
+from app.core.telemetry import get_logger, metrics, configure_logging
+from app.core.middleware import TelemetryMiddleware, TimingRoute
 from app.api.v1 import (
     webhooks,  # renamed from tradingview_webhook
     strategies,  # renamed from backtest
@@ -12,6 +13,16 @@ from app.api.v1 import (
     ai_analysis,
     auth,  # new
     profiling,  # new
+    tasks,  # new - async task management
+)
+
+
+logger = get_logger(__name__)
+
+# Configure telemetry based on environment
+configure_logging(
+    log_level=settings.log_level,
+    log_format="json" if settings.is_production else "console"
 )
 
 
@@ -20,6 +31,9 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     # Startup
     logger.info("Starting Algo Trader", version=settings.app_version)
+    
+    # Set system health metrics
+    metrics.system_health.labels(component="api").set(1)
 
     # TODO: Initialize database connection
     # TODO: Initialize Redis connection
@@ -29,6 +43,7 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("Shutting down Algo Trader")
+    metrics.system_health.labels(component="api").set(0)
     # TODO: Close database connections
     # TODO: Close Redis connections
     # TODO: Cancel background tasks
@@ -42,6 +57,9 @@ app = FastAPI(
     redoc_url="/redoc" if settings.debug else None,
     lifespan=lifespan,
 )
+
+# Add telemetry middleware
+app.add_middleware(TelemetryMiddleware)
 
 # Configure CORS
 app.add_middleware(
@@ -79,6 +97,8 @@ app.include_router(
 )
 
 app.include_router(ai_analysis.router, prefix=settings.api_v1_prefix, tags=["ai"])
+
+app.include_router(tasks.router, prefix=settings.api_v1_prefix, tags=["tasks"])
 
 
 @app.exception_handler(Exception)

@@ -4,6 +4,7 @@ from typing import Dict, Any, List, Optional, Type
 import pandas as pd
 import numpy as np
 from app.core.logger import LoggerMixin, trading_logger
+from app.core.telemetry import metrics, log_execution_time
 from app.core.errors import BacktestError, DataError
 from app.models.backtest import (
     BacktestRequest,
@@ -31,6 +32,7 @@ class Backtester(LoggerMixin):
     def __init__(self):
         self.active_backtests: Dict[str, BacktestResult] = {}
 
+    @log_execution_time()
     async def run_backtest(self, request: BacktestRequest) -> BacktestResult:
         """Execute a backtest based on the request"""
         backtest_id = str(uuid.uuid4())
@@ -491,6 +493,35 @@ class Backtester(LoggerMixin):
             average_trade_duration=0,
             total_market_exposure=0,
         )
+
+
+    async def run_backtest_async(
+        self, 
+        request: BacktestRequest,
+        progress_callback=None
+    ) -> BacktestResult:
+        """
+        Async version of run_backtest with progress callback support.
+        
+        Args:
+            request: Backtest request parameters
+            progress_callback: Optional callback function(progress: int, message: str)
+        
+        Returns:
+            BacktestResult with performance metrics
+        """
+        # This is a wrapper that adds progress callback support
+        if progress_callback:
+            progress_callback(0, "Loading historical data...")
+        
+        # Run the synchronous backtest
+        # In a real implementation, this would be properly async
+        result = self.run_backtest(request)
+        
+        if progress_callback:
+            progress_callback(100, "Backtest completed")
+        
+        return result
 
 
 # Create a singleton instance

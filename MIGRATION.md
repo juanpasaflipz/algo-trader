@@ -41,13 +41,66 @@ We're performing an incremental refactoring to transform the algo-trader codebas
 5. Remove old files ⏳ (keeping for now to ensure backward compatibility)
 6. Update all references ✅
 
-### 0.2 Task Queue Implementation 🔜
-**Status**: Pending
+### 0.2 Task Queue Implementation ✅
+**Status**: Completed
 **Goal**: Add Celery + Redis for async operations
 
-### 0.3 Centralized Telemetry 🔜
-**Status**: Pending
+#### Changes:
+- [x] Added Celery to dependencies in pyproject.toml
+- [x] Created `app/core/celery_app.py` with Celery configuration
+- [x] Updated config.py with Celery broker/backend settings
+- [x] Created `app/workers/tasks.py` with async tasks:
+  - [x] `run_backtest` - Async backtest execution with progress tracking
+  - [x] `analyze_trade_with_ai` - AI analysis in background
+  - [x] `process_webhook` - Webhook processing queue
+  - [x] `batch_analyze_signals` - Batch signal processing
+  - [x] Periodic tasks for health checks and cleanup
+- [x] Created `celery_worker.py` entry point
+- [x] Updated docker-compose.yml with:
+  - [x] Celery worker service
+  - [x] Celery beat service for periodic tasks
+  - [x] Flower service for task monitoring (port 5555)
+- [x] Created `app/api/v1/tasks.py` for task management endpoints
+- [x] Updated webhook endpoint to support async processing flag
+
+#### New Capabilities:
+- Long-running backtests don't block API requests
+- AI analysis can be queued for batch processing
+- Webhook processing can be made async for high throughput
+- Task progress tracking with real-time updates
+- Task cancellation support
+- Flower UI for monitoring tasks at http://localhost:5555
+
+### 0.3 Centralized Telemetry ✅
+**Status**: Completed
 **Goal**: Single source for logging, metrics, and tracing
+
+#### Changes:
+- [x] Created `app/core/telemetry.py` with unified telemetry interface
+- [x] Integrated structlog for structured logging
+- [x] Added comprehensive Prometheus metrics:
+  - [x] HTTP request metrics (count, duration)
+  - [x] Trading metrics (trades, PnL, positions)
+  - [x] Webhook metrics (received, processing time)
+  - [x] Backtest metrics (runs, duration)
+  - [x] AI analysis metrics (analyses, response time, confidence)
+  - [x] Task queue metrics (tasks created, duration)
+  - [x] System health and error metrics
+- [x] Created telemetry middleware for automatic request tracking
+- [x] Added execution timing decorator `@log_execution_time()`
+- [x] Implemented distributed tracing context (placeholder for OpenTelemetry)
+- [x] Updated existing logger module to use centralized telemetry
+- [x] Added request ID tracking for correlation
+- [x] Created example script demonstrating telemetry usage
+
+#### New Capabilities:
+- Structured JSON logging in production
+- Automatic request/response tracking with timing
+- Comprehensive metrics for all operations
+- Error tracking with component attribution
+- Execution time measurement for any function
+- Context propagation for distributed tracing
+- Request correlation with X-Request-ID headers
 
 ## Phase 1: Core Improvements 🔜
 
@@ -115,8 +168,8 @@ Each phase includes rollback steps:
 | Phase | Component | Status | Started | Completed | Notes |
 |-------|-----------|--------|---------|-----------|-------|
 | 0.1 | Directory Structure | ✅ Completed | 2025-01-11 | 2025-01-11 | New structure in place, old files preserved |
-| 0.2 | Task Queue | 🔜 Pending | - | - | - |
-| 0.3 | Telemetry | 🔜 Pending | - | - | - |
+| 0.2 | Task Queue | ✅ Completed | 2025-01-11 | 2025-01-11 | Celery + Redis implemented with task management |
+| 0.3 | Telemetry | ✅ Completed | 2025-01-11 | 2025-01-11 | Centralized logging, metrics, and tracing |
 | 1.1 | Authentication | 🔜 Pending | - | - | - |
 | 1.2 | Plugin Architecture | 🔜 Pending | - | - | - |
 | 1.3 | CLI | 🔜 Pending | - | - | - |

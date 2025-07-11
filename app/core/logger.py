@@ -1,3 +1,9 @@
+"""
+Legacy logger module - now integrates with centralized telemetry.
+
+This module is kept for backward compatibility.
+New code should consider using app.core.telemetry directly.
+"""
 import logging
 import sys
 from pathlib import Path
@@ -53,7 +59,13 @@ def setup_logging() -> None:
 
 def get_logger(name: str) -> structlog.BoundLogger:
     """Get a structured logger instance"""
-    return structlog.get_logger(name)
+    # Import here to avoid circular dependency
+    try:
+        from app.core.telemetry import get_logger as telemetry_get_logger
+        return telemetry_get_logger(name)
+    except ImportError:
+        # Fallback to standard structlog if telemetry not available
+        return structlog.get_logger(name)
 
 
 class LoggerMixin:
@@ -93,6 +105,17 @@ class TradingLogger(LoggerMixin):
             price=price,
             **kwargs,
         )
+        # Also update metrics
+        try:
+            from app.core.telemetry import metrics
+            strategy = kwargs.get("strategy", "unknown")
+            metrics.trades_executed.labels(
+                symbol=symbol,
+                action=action,
+                strategy=strategy
+            ).inc()
+        except ImportError:
+            pass
 
     def log_signal(
         self, strategy: str, symbol: str, signal: str, **kwargs: Any
@@ -105,6 +128,16 @@ class TradingLogger(LoggerMixin):
             signal=signal,
             **kwargs,
         )
+        # Also update metrics
+        try:
+            from app.core.telemetry import metrics
+            source = kwargs.get("source", "strategy")
+            metrics.webhooks_received.labels(
+                source=source,
+                signal_type=signal
+            ).inc()
+        except ImportError:
+            pass
 
     def log_backtest_result(self, strategy: str, metrics: Dict[str, Any]) -> None:
         """Log backtest results"""
